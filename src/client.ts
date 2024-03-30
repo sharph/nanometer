@@ -10,16 +10,26 @@ export class NanometerClient {
     private generatorFn: (() => Generator<Point, any, Point>) | null = null;
     private generator: Generator<Point, any, Point> | null = null;
 
-    constructor(private ws: WebSocket, getPoints?: (num: number) => Promise<Point[]>) {
+    constructor(private ws: WebSocket, getPoints?: (num: number) => Promise<Point[]>, public centerOrigin: boolean = true) {
         if (getPoints) {
             this.getPoints = getPoints
         }
         this.ws.on('message', (msg) => {
             const decoded = JSON.parse(msg.toString()) as number;
             this.getPoints(decoded).then((points) => {
-                this.ws.send(JSON.stringify(points));
+                this.ws.send(JSON.stringify(this.centerOrigin ? points.map(this.transformForCenterOrigin) : points));
             });
         });
+    }
+
+    private transformForCenterOrigin(point: Point) {
+        return {
+            x: (point.x + 1) / 2,
+            y: (point.y + 1) / 2,
+            r: point.r,
+            g: point.g,
+            b: point.b
+        }
     }
 
     attachGetPoints(getPoints: typeof this.getPoints) {

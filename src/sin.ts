@@ -15,8 +15,8 @@ import { connect } from './client';
                 { r: 0, g: 0, b: 1 },
             ]) {
                 for (let x = 0; true; x += 0.01) {
-                    const X = x / 2 + 0.25;
-                    const Y = Math.sin(x * 3.14 * 2) * (Math.sin(x * 8 + (t / 10000) + (offset * 0.1)) + (offset * 0.1)) / 4 + 0.5;
+                    const X = x - 0.5;
+                    const Y = Math.sin(x * 3.14 * 2) * (Math.sin(x * 8 + (t / 10000) + (offset * 0.1)) + (offset * 0.1)) / 2;
                     if (x === 0) {
                         for (let i = 0; i < 20; i++) {
                             t++;

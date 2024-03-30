@@ -1,10 +1,12 @@
 {
   "devDependencies": {
+    "@types/three": "^0.163.0",
     "typescript": "^5.4.3"
   },
   "dependencies": {
     "@laser-dac/ether-dream": "^0.4.2",
     "@laser-dac/simulator": "^0.3.4",
+    "three": "^0.163.0",
     "ws": "^8.16.0"
   }
 }
