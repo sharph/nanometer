@@ -4,6 +4,7 @@ import { Simulator } from '@laser-dac/simulator';
 import { EtherDream } from '@laser-dac/ether-dream';
 import { relativeToPosition, relativeToColor } from '@laser-dac/ether-dream/dist/convert';
 import { WebSocketServer, WebSocket } from 'ws';
+import { encodePointRequest, isPointResponseMessage, decodeMessage } from './proto';
 
 const USE_ETHER_DREAM = process.env.USE_ETHER_DREAM;
 
@@ -146,9 +147,8 @@ class PullDAC extends DAC {
     });
     dac.streamFrom((num: number) => {
         return new Promise((res: ((points: Point[] | Point) => void)) => {
-            const msg = JSON.stringify(num);
             if (activeWS !== null) {
-                activeWS.send(msg);
+                activeWS.send(encodePointRequest(num));
                 pointsCallback = res;
             } else {
                 res(Array(num).fill({ x: 0.5, y: 0.5, r: 0, g: 0, b: 0 }));
@@ -180,10 +180,13 @@ class PullDAC extends DAC {
             console.info('disconnected due to error');
         });
 
-        ws.on('message', (msg) => {
-            const decoded = JSON.parse(msg.toString()) as Point[];
+        ws.on('message', async (msg: Buffer) => {
+            const decoded = await decodeMessage(msg);
+            if (!isPointResponseMessage(decoded)) {
+                return;
+            }
             if (pointsCallback !== null) {
-                pointsCallback(decoded);
+                pointsCallback(decoded.points);
                 pointsCallback = null;
             } else {
                 console.warn('messasge received and no callback set!');

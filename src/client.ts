@@ -2,6 +2,7 @@
 import { Point } from '@laser-dac/core';
 import WebSocket from 'isomorphic-ws';
 
+import { encodePointResponse, decodeMessage, isPointRequestMessage } from './proto';
 
 export class NanometerClient {
     private getPoints: (num: number) => Promise<Point[]> = async (num: number) => {
@@ -14,10 +15,13 @@ export class NanometerClient {
         if (getPoints) {
             this.getPoints = getPoints
         }
-        this.ws.onmessage = (msg: any) => {
-            const decoded = JSON.parse(msg.data.toString()) as number;
-            this.getPoints(decoded).then((points) => {
-                this.ws.send(JSON.stringify(this.centerOrigin ? points.map(this.transformForCenterOrigin) : points));
+        this.ws.onmessage = async (event) => {
+            const decoded = await decodeMessage(event.data as ArrayBuffer);
+            if (!isPointRequestMessage(decoded)) {
+                return;
+            }
+            this.getPoints(decoded.num).then((points: Point[]) => {
+                this.ws.send(encodePointResponse(this.centerOrigin ? points.map(this.transformForCenterOrigin) : points));
             });
         };
     }
