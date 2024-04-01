@@ -33,6 +33,10 @@ value and it will use it in addition to providing you with a simulator.
 npx ts-node src/sin.ts  # Math.sin example
 ```
 
-## Future goals
+### [p5.js](https://p5js.org/)
 
-* Connect from a web browser/[p5.js](https://p5js.org/)
+![nanometer running in p5js screenshot](p5js-screenshot.png)
+
+You can connect a p5js sketch to the Nanometer server. See the
+[included example](https://editor.p5js.org/sharp/sketches/H3moGj3DP) in
+`examples/p5`.
