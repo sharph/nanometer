@@ -7,7 +7,8 @@ import { WebSocketServer, WebSocket } from 'ws';
 
 const USE_ETHER_DREAM = process.env.USE_ETHER_DREAM;
 
-const MIN_POINTS_PER_BUFFER = 1000;
+const MIN_POINTS_PER_BUFFER = 1000; // 1000 seems to be the sweet spot?
+const MIN_POINTS_PER_LOAD = 100;
 
 class PullDAC extends DAC {
     private interval: ReturnType<typeof setTimeout> | null = null
@@ -37,7 +38,7 @@ class PullDAC extends DAC {
         }
     }
 
-    async load(block = false) {
+    async load(num: number = MIN_POINTS_PER_LOAD, block = false) {
         if (this.nextPointCallback === null) {
             return;
         }
@@ -47,7 +48,7 @@ class PullDAC extends DAC {
             }
             return;
         }
-        this.loading = this.nextPointCallback(MIN_POINTS_PER_BUFFER);
+        this.loading = this.nextPointCallback(Math.max(num, MIN_POINTS_PER_BUFFER, MIN_POINTS_PER_LOAD));
         this.buffer = this.buffer.concat(await this.loading as Point[] | Point);
         this.loading = null;
     }
@@ -61,7 +62,7 @@ class PullDAC extends DAC {
                 this.load();
             }
             if (this.buffer.length === 0) {
-                this.buffer.push({ x: 0.5, y: 0.5, r: 1, g: 0, b: 0 });
+                this.buffer.push({ x: 0.5, y: 0.5, r: 0, g: 0, b: 0 });
             }
             this.bufferToStream.push(this.buffer.shift() as Point);
         }
@@ -77,15 +78,19 @@ class PullDAC extends DAC {
             this.pointsRate,
             (num, callback) =>
                 (async () => {
+                    const pointsNeeded = Math.max(1000, num);
                     if (this.nextPointCallback === null) {
                         return;
                     }
-                    while (this.buffer.length < num) {
-                        await this.load(true);
+                    while (this.buffer.length < pointsNeeded) {
+                        this.buffer.push(
+                            { x: 0.5, y: 0.5, r: 0, g: 0, b: 0 }
+                        );
                     }
                     const toSend: any = [];
-                    while (this.buffer.length > 0) {
+                    while (toSend.length < pointsNeeded) {
                         const shifted = this.buffer.shift();
+
                         toSend.push(((point) => ({
                             x: relativeToPosition(point.x),
                             y: relativeToPosition(point.y),
@@ -99,6 +104,7 @@ class PullDAC extends DAC {
                             this.bufferToStream = [];
                         }
                     }
+                    setTimeout(this.load.bind(this), 0, MIN_POINTS_PER_BUFFER);
                     return toSend;
                 })().then((res) => callback(res))
         );

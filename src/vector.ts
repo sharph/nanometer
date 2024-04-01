@@ -55,6 +55,10 @@ export class PointGroup {
         }
     }
 
+    resetMatrix() {
+        this.affine = new Matrix4();
+    }
+
     rotateX(theta: number) {
         this.affine = new Matrix4().makeRotationX(theta).multiply(this.affine);
     }

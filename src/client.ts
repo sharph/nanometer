@@ -1,6 +1,6 @@
 
 import { Point } from '@laser-dac/core';
-import { WebSocket } from 'ws';
+import WebSocket from 'isomorphic-ws';
 
 
 export class NanometerClient {
@@ -14,12 +14,12 @@ export class NanometerClient {
         if (getPoints) {
             this.getPoints = getPoints
         }
-        this.ws.on('message', (msg) => {
-            const decoded = JSON.parse(msg.toString()) as number;
+        this.ws.onmessage = (msg: any) => {
+            const decoded = JSON.parse(msg.data.toString()) as number;
             this.getPoints(decoded).then((points) => {
                 this.ws.send(JSON.stringify(this.centerOrigin ? points.map(this.transformForCenterOrigin) : points));
             });
-        });
+        };
     }
 
     private transformForCenterOrigin(point: Point) {
@@ -62,13 +62,10 @@ export class NanometerClient {
 export function connect(addr: string, getPoints?: ((num: number) => Promise<Point[]>)): Promise<NanometerClient> {
     const ws = new WebSocket(addr);
     return new Promise((res, err) => {
-        ws.on('open', () => {
-            ws.removeAllListeners('close');
-            ws.removeAllListeners('error');
+        ws.onopen = () => {
             res(new NanometerClient(ws, getPoints));
-        });
+        };
 
-        ws.once('error', e => err(e));
-        ws.once('close', e => err(e));
+        ws.onerror = (e) => err(e);
     });
 }

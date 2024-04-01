@@ -1,12 +1,22 @@
 {
-  "devDependencies": {
-    "@types/three": "^0.163.0",
-    "typescript": "^5.4.3"
-  },
-  "dependencies": {
-    "@laser-dac/ether-dream": "^0.4.2",
-    "@laser-dac/simulator": "^0.3.4",
-    "three": "^0.163.0",
-    "ws": "^8.16.0"
-  }
+   "scripts": {
+      "test": "echo \"Error: no test specified\" && exit 1",
+      "build": "webpack"
+   },
+   "sideEffects": false,
+   "devDependencies": {
+      "@types/three": "^0.163.0",
+      "install": "^0.13.0",
+      "ts-loader": "^9.5.1",
+      "typescript": "^5.4.3",
+      "webpack": "^5.91.0",
+      "webpack-cli": "^5.1.4"
+   },
+   "dependencies": {
+      "@laser-dac/ether-dream": "^0.4.2",
+      "@laser-dac/simulator": "^0.3.4",
+      "three": "^0.163.0",
+      "ws": "^8.16.0",
+      "isomorphic-ws": "^5.0.0"
+   }
 }
