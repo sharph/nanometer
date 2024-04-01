@@ -1,4 +1,5 @@
 const path = require("path");
+const TerserPlugin = require("terser-webpack-plugin");
 
 module.exports = {
     entry: "./src/bundle.ts",
@@ -22,7 +23,4 @@ module.exports = {
         library: "Nanometer",
     },
     mode: "production",
-    optimization: {
-        minimize: false,
-    },
 };
