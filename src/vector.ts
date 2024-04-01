@@ -162,6 +162,7 @@ export class PointGroup {
                 const transformedPoint = this.applyMatrix(point, matrixToApply);
                 if (!started) {
                     yield* this.startBlanking(transformedPoint, blankingOptions);
+                    started = true;
                 }
                 yield transformedPoint;
                 lastPoint = transformedPoint;
