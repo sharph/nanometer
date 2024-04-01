@@ -22,11 +22,63 @@ export type BlankingOptions = {
     laserOffSamples: number; // amount of samples the laser needs to be "off" before it actually stops emitting
 };
 
+/**
+ * Abstraction of three's Matrix implementation, so that one day it can be
+ * rewritten or replaced so we can reduce bundle size.
+ */
+class TransformAffine {
+    private affine;
+
+    constructor() {
+        this.affine = new Matrix4()
+    }
+
+    reset() {
+        this.affine = new Matrix4();
+    }
+
+    rotateX(theta: number) {
+        this.affine = new Matrix4().makeRotationX(theta).multiply(this.affine);
+    }
+
+    rotateY(theta: number) {
+        this.affine = new Matrix4().makeRotationY(theta).multiply(this.affine);
+    }
+
+    rotateZ(theta: number) {
+        this.affine = new Matrix4().makeRotationZ(theta).multiply(this.affine);
+    }
+
+    scale({ x = 0, y = 0, z = 0 }) {
+        this.affine = new Matrix4().makeScale(x, y, z).multiply(this.affine);
+    }
+
+    translate({ x = 0, y = 0, z = 0 }) {
+        this.affine = new Matrix4().makeTranslation(new Vector3(x, y, z)).multiply(this.affine);
+    }
+
+    applyToPoint({ x, y, z = 0 }: { x: number, y: number, z: number }) {
+        const vec = new Vector3(x, y, z);
+        vec.applyMatrix4(this.affine);
+        return {
+            x: vec.x,
+            y: vec.y,
+            z: vec.z
+        }
+    }
+
+    multiply(affine: TransformAffine) {
+        const newAffine = new TransformAffine();
+        newAffine.affine = this.affine.clone().multiply(affine.affine);
+        return newAffine;
+    }
+}
+
 export class PointGroup {
-    public affine: Matrix4;
+    public affine: TransformAffine;
 
     constructor(public points?: (Point | PointGroup)[], public blank: boolean = false) {
-        this.affine = new Matrix4();
+        this.affine = new TransformAffine();
     }
 
     *startBlanking(point: Point, blankingOptions?: BlankingOptions) {
@@ -56,43 +108,41 @@ export class PointGroup {
     }
 
     resetMatrix() {
-        this.affine = new Matrix4();
+        this.affine.reset();
     }
 
     rotateX(theta: number) {
-        this.affine = new Matrix4().makeRotationX(theta).multiply(this.affine);
+        this.affine.rotateX(theta);
     }
 
     rotateY(theta: number) {
-        this.affine = new Matrix4().makeRotationY(theta).multiply(this.affine);
+        this.affine.rotateY(theta);
     }
 
     rotateZ(theta: number) {
-        this.affine = new Matrix4().makeRotationZ(theta).multiply(this.affine);
+        this.affine.rotateZ(theta);
     }
 
     scale({ x = 0, y = 0, z = 0 }) {
-        this.affine = new Matrix4().makeScale(x, y, z).multiply(this.affine);
+        this.affine.scale({ x, y, z });
     }
 
     translate({ x = 0, y = 0, z = 0 }) {
-        this.affine = new Matrix4().makeTranslation(new Vector3(x, y, z)).multiply(this.affine);
+        this.affine.translate({ x, y, z });
     }
 
-
-    applyMatrix(point: Point, affine: Matrix4) {
+    applyMatrix(point: Point, affine: TransformAffine) {
         let { x, y, z = 0 } = point;
-        const vec = new Vector3(x, y, z);
-        vec.applyMatrix4(affine);
-        [x, y, z] = [vec.x, vec.y, vec.z];
+        const coords = affine.applyToPoint({ x, y, z });
+        [x, y, z] = [coords.x, coords.y, coords.z];
         return { ...point, x, y, z };
     }
 
-    *getPoints(blankingOptions?: BlankingOptions, affine?: Matrix4): Generator<Point, void> {
+    *getPoints(blankingOptions?: BlankingOptions, affine?: TransformAffine): Generator<Point, void> {
         if (!affine) {
-            affine = new Matrix4();
+            affine = new TransformAffine();
         }
-        const matrixToApply = affine.clone().multiply(this.affine);
+        const matrixToApply = affine.multiply(this.affine);
         if (this.points === undefined) {
             return;
         }
@@ -124,7 +174,7 @@ export class PointGroup {
 }
 
 export class PerspectiveGroup extends PointGroup {
-    *getPoints(blankingOptions?: BlankingOptions, affine?: Matrix4): Generator<Point, void> {
+    *getPoints(blankingOptions?: BlankingOptions, affine?: TransformAffine): Generator<Point, void> {
         for (const point of super.getPoints(blankingOptions, affine)) {
             const d = 1 / (2 - (point.z || 0));
             yield {
@@ -141,11 +191,11 @@ export class PerspectiveGroup extends PointGroup {
 export abstract class ComputedPointGroup extends PointGroup {
     abstract computePoints(): Generator<Point, void>
 
-    *getPoints(blankingOptions?: BlankingOptions, affine?: Matrix4): Generator<Point, void> {
+    *getPoints(blankingOptions?: BlankingOptions, affine?: TransformAffine): Generator<Point, void> {
         if (!affine) {
-            affine = new Matrix4();
+            affine = new TransformAffine();
         }
-        const matrixToApply = affine.clone().multiply(this.affine);
+        const matrixToApply = affine.multiply(this.affine);
         let started = false;
         let lastPoint: Point | null = null;
         for (const point of this.computePoints()) {
